@@ -1,0 +1,6 @@
+framework module Pods_FoodAllergenScanApp {
+  umbrella header "Pods-FoodAllergenScanApp-umbrella.h"
+
+  export *
+  module * { export * }
+}
