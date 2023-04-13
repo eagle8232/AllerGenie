@@ -7,6 +7,7 @@
 
 import GoogleSignIn
 import FirebaseCore
+import FBSDKCoreKit
 import UIKit
 import CoreData
 
@@ -16,8 +17,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
         // Override point for customization after application launch.
         FirebaseApp.configure()
+        ApplicationDelegate.shared.application(application, didFinishLaunchingWithOptions: launchOptions)
         
         
         
@@ -105,7 +108,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 product.productName = productName
                 product.brandName = brandName
                 product.ingredients = ingredients
-                product.date = date
+                product.dateScanned = date
                 saveContext()
             } else {
                 print("Product with barcode \(barcode) already exists.")
@@ -115,6 +118,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         }
     }
     
+    func fetchProducts() -> [Product]? {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Product> = Product.fetchRequest()
+        var products: [Product] = []
+        do {
+            products = try context.fetch(fetchRequest)
+            products = products.sorted { $0.dateScanned ?? Date() > $1.dateScanned ?? Date() }
+            return products
+        } catch let error {
+            print("Error fetching products: \(error.localizedDescription)")
+            return nil
+        }
+        
+    }
     
     func saveUserHealthInfo(healthyFood: [String], notRecommendedFood: [String], foodsToAvoid: [String]) {
         let context = persistentContainer.viewContext
@@ -150,6 +167,140 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         } catch let error {
             print("Error fetching HealthInfo: \(error.localizedDescription)")
             return nil
+        }
+    }
+    
+    func saveUserSettings(name: String?, email: String, age: Int32?, gender: String?, profileImageUrl: String?) {
+        let context = persistentContainer.viewContext
+        
+        // Delete any existing UserHealthInfo object
+        let fetchRequest: NSFetchRequest<Settings> = Settings.fetchRequest()
+        do {
+            let existingSettings = try context.fetch(fetchRequest)
+            for settings in existingSettings {
+                context.delete(settings)
+            }
+        } catch let error {
+            print("Error fetching existing UserHealthInfo: \(error.localizedDescription)")
+        }
+        
+        // Create a new UserHealthInfo object and set its attributes
+        let settings = NSEntityDescription.insertNewObject(forEntityName: "Settings", into: context) as! Settings
+        settings.name = name
+        settings.email = email
+        settings.age = age ?? 0
+        settings.gender = gender
+        settings.profileImage = profileImageUrl
+        
+        // Save the changes to the context
+        saveContext()
+    }
+    
+    func fetchUserSettings() -> Settings? {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Settings> = Settings.fetchRequest()
+
+        do {
+            let settingsArray = try context.fetch(fetchRequest)
+            return settingsArray.first
+        } catch let error {
+            print("Error fetching HealthInfo: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    func saveAim(_ aimString: String) {
+        let context = persistentContainer.viewContext
+        
+        // Delete any existing UserHealthInfo object
+        let fetchRequest: NSFetchRequest<Aim> = Aim.fetchRequest()
+        
+        do {
+            let existingAims = try context.fetch(fetchRequest)
+            for aim in existingAims {
+                context.delete(aim)
+            }
+        } catch let error {
+            print("Error fetching existing UserHealthInfo: \(error.localizedDescription)")
+        }
+        
+        // Create a new UserHealthInfo object and set its attributes
+        let aim = NSEntityDescription.insertNewObject(forEntityName: "Aim", into: context) as! Aim
+        
+        aim.aimString = aimString
+        // Save the changes to the context
+        saveContext()
+    }
+    
+    func fetchAim() -> Aim? {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<Aim> = Aim.fetchRequest()
+
+        do {
+            let aimsArray = try context.fetch(fetchRequest)
+            return aimsArray.first
+        } catch let error {
+            print("Error fetching HealthInfo: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    func saveSavedProduct(barcode: String, imageUrl: String?, productName: String?, brandName: String?, ingredients: String?, date: Date?, isSaved: Bool) {
+        let context = persistentContainer.viewContext
+        
+        let fetchRequest: NSFetchRequest<SavedProducts> = SavedProducts.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "barcode == %@", barcode)
+        
+        do {
+            let existingProducts = try context.fetch(fetchRequest)
+            
+            if existingProducts.isEmpty {
+                let product = NSEntityDescription.insertNewObject(forEntityName: "SavedProducts", into: context) as! SavedProducts
+                product.barcode = barcode
+                product.imageUrl = imageUrl
+                product.productName = productName
+                product.brandName = brandName
+                product.ingredients = ingredients
+                product.dateScanned = date
+                product.isSaved = isSaved
+                saveContext()
+            } else {
+                print("Product with barcode \(barcode) already exists.")
+            }
+        } catch let error {
+            print("Error fetching existing products: \(error.localizedDescription)")
+        }
+    }
+    
+    func fetchSavedProducts() -> [SavedProducts]? {
+        let context = persistentContainer.viewContext
+        let fetchRequest: NSFetchRequest<SavedProducts> = SavedProducts.fetchRequest()
+        var products: [SavedProducts] = []
+        do {
+            products = try context.fetch(fetchRequest)
+            products = products.sorted { $0.dateScanned ?? Date() > $1.dateScanned ?? Date() }
+            return products
+        } catch let error {
+            print("Error fetching products: \(error.localizedDescription)")
+            return nil
+        }
+    }
+    
+    func deleteElementFromSavedProduct(barcode: String) {
+        let context = persistentContainer.viewContext
+
+        let fetchRequest: NSFetchRequest<SavedProducts> = SavedProducts.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "barcode == %@", barcode)
+
+        do {
+            let existingProducts = try context.fetch(fetchRequest)
+
+            if let product = existingProducts.first {
+                context.delete(product)
+                saveContext()
+            }
+        } catch let error {
+            print("Error fetching existing products: \(error.localizedDescription)")
         }
     }
 }

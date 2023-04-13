@@ -32,9 +32,15 @@ class ScanViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
     @IBOutlet weak var matchResultLabel: UILabel!
     @IBOutlet weak var closeButton: UIButton!
     
+    var customTabBar: UIView?
+    
     var ingredients: String?
+    var productImageUrlString: String?
     
     let userInfoVM = UserInfoViewModel()
+    var allergenFood: AllergenFood?
+    var healthInfoModel: HealthInfoModel?
+    
     
     var healthyFood: [String] = []
     var notRecommendedFood: [String] = []
@@ -42,36 +48,30 @@ class ScanViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         setupCaptureSession()
         networking.delegate = self
         matchPopUpView.layer.cornerRadius = 25
-//        self.networking.fetchProductInfo(barcode: "3017620422003") { [weak self] (productName, brand, ingredients, imageUrl) in
-//
-//            self?.checkIfMatches(ingredients: ingredients ?? "")
-//
-//            let today = Date()
-//            self?.matchPopUpView.isHidden = false
-//            if let url = URL(string: imageUrl ?? "") {
-//                self?.productImageView.kf.setImage(with: url)
-//            }
-//            self?.productNameLabel.text = productName
-//            self?.brandNameLabel.text = brand
-//            self?.ingredients = ingredients
-//            self?.showPopUpView()
-//
-//            //And save it to core data
-//            //For now use "3017620422003"
-//            self?.appDelegate.saveProduct(barcode: "3017620422003", imageUrl: imageUrl, productName: productName, brandName: brand, ingredients: ingredients, date: today)
-//
-//        }
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        navigationController?.isNavigationBarHidden = true
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        navigationController?.isNavigationBarHidden = false
+    }
     
     @IBAction func didTapMoreDetailsButton(_ sender: UIButton) {
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         guard let productInfo = storyboard.instantiateViewController(withIdentifier: "ProductsInfoViewController") as? ProductsInfoViewController else {return}
-        productInfo.modalPresentationStyle = .fullScreen
-        present(productInfo, animated: true)
+        productInfo.customTabBar = customTabBar
+        productInfo.productImageUrlString = productImageUrlString
+        productInfo.allergenFood = allergenFood
+        productInfo.healthInfoModel = healthInfoModel
+        navigationController?.pushViewController(productInfo, animated: true)
     }
     
     
@@ -158,25 +158,31 @@ class ScanViewController: UIViewController, AVCaptureVideoDataOutputSampleBuffer
             
             AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
             self.found(code: payload)
-            self.networking.fetchProductInfo(barcode: "3017620422003") { [weak self] (productName, brand, ingredients, imageUrl) in
-                
-                self?.checkIfMatches(ingredients: ingredients ?? "")
-                
-                let today = Date()
-                self?.matchPopUpView.isHidden = false
-                if let url = URL(string: imageUrl ?? "") {
-                    self?.productImageView.kf.setImage(with: url)
+            InternetConnectionViewModel.showNoConnectionView(view: self.view) { success in
+                if success {
+                    self.networking.fetchProductInfo(barcode: payload) { [weak self] (productName, brand, ingredients, imageUrl) in
+                        self?.allergenFood = AllergenFood(productName: productName ?? "", brand: brand ?? "", ingredients: ingredients ?? "")
+                        self?.checkIfMatches(ingredients: ingredients ?? "")
+                        
+                        let today = Date()
+                        self?.matchPopUpView.isHidden = false
+                        if let url = URL(string: imageUrl ?? "") {
+                            self?.productImageUrlString = imageUrl
+                            self?.productImageView.kf.setImage(with: url)
+                        }
+                        self?.productNameLabel.text = productName
+                        self?.brandNameLabel.text = brand
+                        self?.ingredients = ingredients
+                        self?.showPopUpView()
+                        
+                        //And save it to core data
+                        //For now use "3017620422003"
+                        self?.appDelegate.saveProduct(barcode: payload, imageUrl: imageUrl, productName: productName, brandName: brand, ingredients: ingredients, date: today)
+                        
+                    }
                 }
-                self?.productNameLabel.text = productName
-                self?.brandNameLabel.text = brand
-                self?.ingredients = ingredients
-                self?.showPopUpView()
-                
-                //And save it to core data
-                //For now use "3017620422003"
-                self?.appDelegate.saveProduct(barcode: "3017620422003", imageUrl: imageUrl, productName: productName, brandName: brand, ingredients: ingredients, date: today)
-                
             }
+            
             print("Barcode: \(payload)")
             
             // Stop the capture session if needed

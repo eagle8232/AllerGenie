@@ -6,11 +6,12 @@ target 'FoodAllergenScanApp' do
   use_frameworks!
 
   # Pods for FoodAllergenScanApp
-#pod ‘FBSDKCoreKit’
-#pod ‘FBSDKLoginKit’
+pod ‘FBSDKCoreKit’
+pod ‘FBSDKLoginKit’
 pod 'GoogleSignIn'
 pod 'FirebaseAnalytics'
 pod 'FirebaseAuth'
 pod 'FirebaseFirestore'
+pod 'FirebaseStorage'
 pod 'Kingfisher', '~> 7.0'
 end

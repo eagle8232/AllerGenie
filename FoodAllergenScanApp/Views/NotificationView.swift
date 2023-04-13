@@ -19,6 +19,8 @@ class NotificationView: UIView {
         let label = UILabel()
         label.textAlignment = .center
         label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
+        label.adjustsFontSizeToFitWidth = true
+        label.numberOfLines = 3
         return label
     }()
     

@@ -19,14 +19,40 @@ class HomeViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        title = "Recent Products"
+        setupKeyboard()
         fetchProducts()
         setupTableView()
         addGestures()
         searchTextField.delegate = self
+        
     }
     
-
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .systemBackground
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+    }
+    
     //MARK: - Functions -
+    
+    func setupKeyboard() {
+        // Create a toolbar
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+
+        // Create a "Done" button for the toolbar
+        let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(didTapToResign))
+        toolbar.setItems([doneButton], animated: true)
+
+        // Set the toolbar as the text field's accessory view
+        searchTextField.inputAccessoryView = toolbar
+
+    }
+    
     private func setupTableView() {
         recentTableView.delegate = self
         recentTableView.dataSource = self
@@ -35,8 +61,7 @@ class HomeViewController: UIViewController {
     }
     
     private func addGestures() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapToResign))
-        view.addGestureRecognizer(tapGesture)
+        
     }
     
     func fetchProducts() {

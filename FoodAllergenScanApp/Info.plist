@@ -12,7 +12,21 @@
 				<string>com.googleusercontent.apps.824107232791-r8c2tgthtmf8lgvsv15bn39c8rlvipn5</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb1191486824889554</string>
+			</array>
+		</dict>
 	</array>
+	<key>FacebookAppID</key>
+	<string>1191486824889554</string>
+	<key>FacebookClientToken</key>
+	<string>c2cdcf182530d1bc7de8d7e860cfc26d</string>
+	<key>FacebookDisplayName</key>
+	<string>AllerGenie</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

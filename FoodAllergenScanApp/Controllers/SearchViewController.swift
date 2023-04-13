@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import FirebaseAuth
 import CoreData
 import Kingfisher
 
@@ -14,18 +15,50 @@ class SearchViewController: UIViewController {
     @IBOutlet weak var productsTableView: UITableView!
     @IBOutlet weak var searchTextField: UITextField!
     
+    var customTabBar: UIView?
+    
+    var healthInfoModel: HealthInfoModel?
+    var userInfoVM = UserInfoViewModel()
+    
     var products: [Product] = []
     var filteredDataSource = [Product]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        title = "Specific Allergens"
+        setupKeyboard()
+        fecthUserlHealthInfo()
         fetchProducts()
         setupTableView()
         addGestures()
         searchTextField.delegate = self
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = .systemBackground
+        navigationController?.navigationBar.standardAppearance = appearance
+        navigationController?.navigationBar.scrollEdgeAppearance = appearance
+    }
+    
     //MARK: - Functions -
+    
+    func setupKeyboard() {
+        // Create a toolbar
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+
+        // Create a "Done" button for the toolbar
+        let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(didTapToResign))
+        toolbar.setItems([doneButton], animated: true)
+
+        // Set the toolbar as the text field's accessory view
+        searchTextField.inputAccessoryView = toolbar
+
+    }
+    
     private func setupTableView() {
         productsTableView.delegate = self
         productsTableView.dataSource = self
@@ -34,15 +67,25 @@ class SearchViewController: UIViewController {
     }
     
     private func addGestures() {
-        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapToResign))
-        view.addGestureRecognizer(tapGesture)
+        
+    }
+    
+    func fecthUserlHealthInfo() {
+        DispatchQueue.main.async { [weak self] in
+            if let user = Auth.auth().currentUser {
+                //Check user healt info with core data
+                self?.userInfoVM.fetchUserHealth(uid: user.uid) { [weak self] userHealthInfo in
+                    let userHealthInfoModel = HealthInfoModel(healthyFood: userHealthInfo?.healthyFood, notRecommendedFood: userHealthInfo?.notRecommendedFood, foodToAvoid: userHealthInfo?.foodToAvoid)
+                    self?.healthInfoModel = userHealthInfoModel
+                }
+            }
+        }
     }
     
     func fetchProducts() {
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
         let context = appDelegate.persistentContainer.viewContext
         let fetchRequest: NSFetchRequest<Product> = Product.fetchRequest()
-        
         
         do {
             products = try context.fetch(fetchRequest)
@@ -71,11 +114,15 @@ extension SearchViewController: UITableViewDelegate, UITableViewDataSource {
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.deselectRow(at: indexPath, animated: true)
+        let allergenFood = AllergenFood(productName: filteredDataSource[indexPath.row].productName ?? "not_found", brand: filteredDataSource[indexPath.row].brandName ?? "not_found", ingredients: filteredDataSource[indexPath.row].ingredients ?? "not_found")
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         guard let productInfo = storyboard.instantiateViewController(withIdentifier: "ProductsInfoViewController") as? ProductsInfoViewController else {return}
-        productInfo.modalPresentationStyle = .fullScreen
-        present(productInfo, animated: true)
+        productInfo.customTabBar = self.customTabBar
+        productInfo.productImageUrlString = filteredDataSource[indexPath.row].imageUrl
+        productInfo.allergenFood = allergenFood
+        productInfo.healthInfoModel = healthInfoModel
+        navigationController?.pushViewController(productInfo, animated: true)
+        tableView.deselectRow(at: indexPath, animated: true)
     }
     
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
